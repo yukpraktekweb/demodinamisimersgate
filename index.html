@@ -299,7 +299,7 @@
                                         </div>
                                         <div class="flex flex-col">
                                             <span class="text-sm text-textMain font-medium">Kirim WhatsApp Otomatis</span>
-                                            <span class="text-xs text-gray-500">Kirim pemberitahuan melalui provider API (Xsender/Fonnte).</span>
+                                            <span class="text-xs text-gray-500">Kirim pemberitahuan melalui provider API (StarSender/Fonnte).</span>
                                         </div>
                                     </label>
 
@@ -346,15 +346,15 @@
                                         <label class="block text-sm font-medium text-gray-300 mb-1">WA Provider</label>
                                         <select id="setting-wa-provider" class="w-full px-4 py-2 bg-dark border border-borderMain text-textMain rounded-lg focus:ring-2 focus:ring-primary outline-none">
                                             <option value="fonnte">Fonnte API</option>
-                                            <option value="xsender">Xsender ID</option>
+                                            <option value="starsender">StarSender</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-300 mb-1">API Token</label>
+                                        <label class="block text-sm font-medium text-gray-300 mb-1">API Token / API Key</label>
                                         <input type="text" id="setting-wa-token" placeholder="Masukkan Token/API Key WA Anda" class="w-full px-4 py-2 bg-dark border border-borderMain text-textMain rounded-lg focus:ring-2 focus:ring-primary outline-none">
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-300 mb-1">Admin Sender Number <span class="text-xs text-gray-500 font-normal">(Wajib jika pakai Xsender)</span></label>
+                                        <label class="block text-sm font-medium text-gray-300 mb-1">Admin Sender Number <span class="text-xs text-gray-500 font-normal">(Opsional / Sesuai Provider)</span></label>
                                         <input type="text" id="setting-wa-admin" placeholder="081234567890" class="w-full px-4 py-2 bg-dark border border-borderMain text-textMain rounded-lg focus:ring-2 focus:ring-primary outline-none">
                                     </div>
                                 </div>
@@ -1246,7 +1246,7 @@
                 }
 
             } catch (err) { showToast('Error', err.message, true); } 
-            finally { btn.innerHTML = `Create & Notify`; btn.disabled = false; }
+            finally { btn.innerHTML = `Buat & Simpan`; btn.disabled = false; }
         }
 
         function openEditAgencyModal(id) {
