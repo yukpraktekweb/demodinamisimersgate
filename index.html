@@ -299,7 +299,7 @@
                                         </div>
                                         <div class="flex flex-col">
                                             <span class="text-sm text-textMain font-medium">Kirim WhatsApp Otomatis</span>
-                                            <span class="text-xs text-gray-500">Kirim pemberitahuan melalui provider API (StarSender/Fonnte).</span>
+                                            <span class="text-xs text-gray-500">Kirim pemberitahuan melalui provider API (StarSender/Xsender/Fonnte).</span>
                                         </div>
                                     </label>
 
@@ -666,7 +666,7 @@
         // URL WEB APP APPS SCRIPT ANDA
         // PASTIKAN MENGGUNAKAN URL DARI "NEW DEPLOYMENT"
         // ========================================================
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbysAN140r8hFzvRIkFx8FZfko3TFYVemlE737yDCl7MiRmsvHXJTcLglrynSlEXRWyN/exec/exec'; 
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbysAN140r8hFzvRIkFx8FZfko3TFYVemlE737yDCl7MiRmsvHXJTcLglrynSlEXRWyN/exec'; 
 
         let appState = { user: null, products: [], agencies: [], allProducts: [], settings: {}, dynamicMenus: [] };
         let confirmActionCallback = null;
@@ -690,9 +690,10 @@
             let brandName = appState.settings.brandName || 'iMersGate';
             let senderName = appState.user.name;
             
-            let passText = password ? password : "(Sesuai password awal / Gunakan fitur Lupa Password)";
+            // Menggunakan Fallback Teks Lupa Password jika password tidak dilempar dari fungsi create
+            let passText = password ? password : "(Silakan Gunakan Fitur Lupa Password)";
             
-            let msg = `🚀 *Halo ${name},*\nAkun Anda telah berhasil dibuat dan sudah aktif!\n\n🔑 *Detail Akses:*\nEmail: ${email}\nPassword: ${passText}\nLink Login: ${appUrl}\n\n⚠️ *Mohon segera ganti password Anda setelah berhasil login untuk keamanan.*\n\n*Terima Kasih,*\n*-- ${senderName} | Official Partner ${brandName}*`;
+            let msg = `🚀 *Halo ${name},*\nAkun Anda telah berhasil dibuat dan sudah aktif!\n\n🔑 *Detail Akses:*\nEmail: ${email}\nPassword: ${passText}\nLink Login: ${appUrl}\n\n⚠️ *PENTING:*\nIni adalah password temporary (sementara). Demi kenyamanan dan privacy Anda, diwajibkan untuk segera update/ganti password ini di menu Pengaturan Akun di dalam member area setelah berhasil login.\n\n*Terima Kasih,*\n*-- ${senderName} | Official Partner ${brandName}*`;
             
             let waLink = `https://wa.me/${formatWaNumber(phone)}?text=${encodeURIComponent(msg)}`;
             window.open(waLink, '_blank');
@@ -1178,6 +1179,7 @@
                         </span>
                     </td>
                     <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end space-x-2">
+                        <!-- UPDATE: Menggunakan Parameter Asli (Tanpa membocorkan password dari DB) -->
                         <button onclick="sendManualWa('${a.name}', '${a.email}', '${a.phone}')" title="Kirim Info via WhatsApp" class="text-green-500 hover:text-green-400 bg-dark hover:bg-[#222] border border-green-500/30 hover:border-green-500/60 p-1.5 sm:p-2 rounded-md transition-colors">
                             <i data-lucide="message-circle" class="w-4 h-4"></i>
                         </button>
