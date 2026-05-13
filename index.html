@@ -53,20 +53,23 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* KUNCI HTML RESPONSIVE (Agar akses produk tidak terpotong di HP) */
-        #view-product-content * {
+        /* KUNCI HTML RESPONSIVE (Diperbaiki agar tidak merusak Grid Layout) */
+        #view-product-content *, .dynamic-view * {
             max-width: 100% !important;
             box-sizing: border-box !important;
             word-wrap: break-word !important;
         }
         #view-product-content img, 
         #view-product-content video, 
-        #view-product-content iframe {
+        #view-product-content iframe,
+        .dynamic-view img,
+        .dynamic-view video,
+        .dynamic-view iframe {
             max-width: 100% !important;
-            height: auto !important;
             border-radius: 0.5rem;
+            /* Dihapus: height: auto !important; dan display: block; yang bikin grid rusak */
         }
-        #view-product-content table {
+        #view-product-content table, .dynamic-view table {
             display: block;
             width: 100% !important;
             overflow-x: auto;
@@ -180,8 +183,11 @@
     <!-- MAIN APPLICATION -->
     <div id="app-view" class="hidden w-full h-full flex relative">
         
-        <!-- SIDEBAR (Hanya tampil di Laptop/PC) -->
-        <aside id="sidebar" class="hidden lg:flex w-64 bg-dark border-r border-borderMain flex-col z-30 h-full">
+        <!-- SIDEBAR BACKDROP FOR MOBILE -->
+        <div id="sidebar-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="w-64 bg-dark border-r border-borderMain flex flex-col transition-transform duration-300 z-30 fixed inset-y-0 left-0 transform -translate-x-full lg:translate-x-0 lg:static h-full">
             <div class="h-16 flex items-center justify-between px-6 border-b border-borderMain bg-card/50 flex-shrink-0">
                 <div class="flex items-center overflow-hidden">
                     <div id="sidebar-logo" class="w-8 h-8 bg-transparent flex items-center justify-center mr-3 flex-shrink-0 overflow-hidden">
@@ -189,6 +195,10 @@
                     </div>
                     <span id="sidebar-brand-name" class="text-lg font-extrabold tracking-wide truncate text-primary">iMersGate</span>
                 </div>
+                <!-- Mobile Close Sidebar Button -->
+                <button onclick="toggleSidebar()" class="lg:hidden text-gray-400 hover:text-white focus:outline-none">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
             </div>
             <nav class="flex-1 py-6 px-3 space-y-1 overflow-y-auto no-scrollbar" id="nav-menu"></nav>
             <div class="p-4 border-t border-borderMain flex flex-col space-y-4 bg-card/50 flex-shrink-0">
@@ -207,16 +217,20 @@
 
         <!-- MAIN CONTENT -->
         <main class="flex-1 flex flex-col h-full bg-dark overflow-hidden relative w-full">
+            <!-- HEADER (With Hamburger Menu for Mobile) -->
             <header class="h-16 bg-card border-b border-borderMain flex items-center justify-between px-4 sm:px-8 z-10 flex-shrink-0">
-                <h2 class="text-lg sm:text-xl font-bold text-textMain truncate" id="page-title">Dashboard</h2>
+                <div class="flex items-center">
+                    <button onclick="toggleSidebar()" class="mr-4 lg:hidden text-gray-400 hover:text-white focus:outline-none p-1 rounded-md bg-dark border border-borderMain">
+                        <i data-lucide="menu" class="w-5 h-5"></i>
+                    </button>
+                    <h2 class="text-lg sm:text-xl font-bold text-textMain truncate" id="page-title">Dashboard</h2>
+                </div>
                 <div class="flex items-center space-x-4">
                     <span class="bg-primary/10 text-primary border border-primary/20 text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 rounded-full uppercase tracking-wider whitespace-nowrap" id="header-role-badge">Admin</span>
-                    <button onclick="logout()" title="Logout" class="lg:hidden text-red-500 hover:text-red-400 p-2 rounded-md bg-dark border border-borderMain transition-colors">
-                        <i data-lucide="log-out" class="w-4 h-4"></i>
-                    </button>
                 </div>
             </header>
 
+            <!-- pb-20 agar tidak tertutup bottom navbar di mobile -->
             <div class="flex-1 overflow-y-auto p-4 sm:p-8 w-full pb-24 lg:pb-8" id="content-area">
                 
                 <!-- DASHBOARD VIEW -->
@@ -247,6 +261,7 @@
                         </button>
                     </div>
                     <div class="bg-card rounded-xl shadow-lg border border-borderMain overflow-hidden">
+                        <!-- Wrapper overflow-x-auto for horizontal scroll on mobile -->
                         <div class="overflow-x-auto w-full">
                             <table class="min-w-full divide-y divide-borderMain">
                                 <thead class="bg-[#222]">
@@ -299,7 +314,7 @@
                                         </div>
                                         <div class="flex flex-col">
                                             <span class="text-sm text-textMain font-medium">Kirim WhatsApp Otomatis</span>
-                                            <span class="text-xs text-gray-500">Kirim pemberitahuan melalui provider API (StarSender/Xsender/Fonnte).</span>
+                                            <span class="text-xs text-gray-500">Kirim pemberitahuan melalui provider API (StarSender/Fonnte).</span>
                                         </div>
                                     </label>
 
@@ -505,6 +520,43 @@
         </div>
     </div>
 
+    <!-- Modal Kelola Akses Produk -->
+    <div id="modal-manage-access" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-dark/80 backdrop-blur-sm" onclick="closeModal('modal-manage-access')"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-card border border-borderMain rounded-2xl shadow-2xl flex flex-col fade-in max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center p-6 border-b border-borderMain bg-[#1A1A1A]">
+                <h3 class="text-lg font-bold text-textMain">Kelola Akses Produk</h3>
+                <button onclick="closeModal('modal-manage-access')" class="text-gray-400 hover:text-gray-200"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto">
+                <p class="text-sm text-gray-400 mb-4">Mengelola akses untuk: <strong id="manage-access-agency-name" class="text-primary"></strong></p>
+                
+                <input type="hidden" id="manage-access-agency-id">
+                
+                <!-- Tambah Akses Baru -->
+                <div class="flex space-x-2 mb-6">
+                    <select id="manage-access-product-select" class="flex-1 px-4 py-2 bg-dark border border-borderMain text-textMain rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none">
+                        <option value="" disabled selected>Pilih produk untuk ditambahkan...</option>
+                        <!-- Injected via JS -->
+                    </select>
+                    <button id="btn-add-access" onclick="handleAddAccess()" class="px-4 py-2 bg-primary hover:bg-primaryHover text-white rounded-lg text-sm font-medium transition-colors flex items-center">
+                        <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Tambah
+                    </button>
+                </div>
+
+                <hr class="border-borderMain mb-4">
+                
+                <!-- Daftar Akses Saat Ini -->
+                <h4 class="text-sm font-bold text-gray-300 mb-3">Produk yang Dimiliki:</h4>
+                <div class="border border-borderMain rounded-lg overflow-hidden">
+                    <ul id="manage-access-list" class="divide-y divide-borderMain max-h-48 overflow-y-auto bg-dark">
+                        <!-- Injected via JS -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Create Agency Modal -->
     <div id="modal-create-agency" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-dark/80 backdrop-blur-sm" onclick="closeModal('modal-create-agency')"></div>
@@ -514,6 +566,10 @@
                 <button onclick="closeModal('modal-create-agency')" class="text-gray-400 hover:text-gray-200"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <form id="form-create-agency" class="p-4 sm:p-6 overflow-y-auto space-y-4" onsubmit="handleCreateAgency(event)">
+                <div class="bg-primary/10 border border-primary/20 text-primary text-xs p-3 rounded-lg mb-4 flex items-start">
+                    <i data-lucide="info" class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0"></i>
+                    <span>This new agency will inherit a snapshot of <strong>all products</strong> currently assigned to you.</span>
+                </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-1">Agency Name</label>
                     <input type="text" id="agency-name" required class="w-full px-4 py-2 bg-dark border border-borderMain text-textMain rounded-lg focus:ring-2 focus:ring-primary outline-none">
@@ -650,7 +706,7 @@
                 <button onclick="closeModal('modal-view-product')" class="text-gray-400 hover:text-gray-200 bg-[#222] p-1 rounded-md shadow-sm flex-shrink-0"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <div class="p-4 sm:p-8 overflow-y-auto bg-dark">
-                <div id="view-product-content" class="prose max-w-none text-gray-300 leading-relaxed text-sm sm:text-base break-words">
+                <div id="view-product-content" class="prose max-w-none text-gray-300 leading-relaxed text-sm sm:text-base overflow-x-hidden break-words">
                     <!-- Konten HTML diinject via JS -->
                 </div>
             </div>
@@ -666,7 +722,7 @@
         // URL WEB APP APPS SCRIPT ANDA
         // PASTIKAN MENGGUNAKAN URL DARI "NEW DEPLOYMENT"
         // ========================================================
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbysAN140r8hFzvRIkFx8FZfko3TFYVemlE737yDCl7MiRmsvHXJTcLglrynSlEXRWyN/exec'; 
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyR64-6s2dFSTH41a0jMv2V_E-_Tof01mU_b9E_z28O4s1m82D8T8rE-c27T8V8T8w/exec'; 
 
         let appState = { user: null, products: [], agencies: [], allProducts: [], settings: {}, dynamicMenus: [] };
         let confirmActionCallback = null;
@@ -677,27 +733,21 @@
             fetchInitialData();
         });
 
-        // --- FUNGSI KIRIM WA MANUAL (GRATIS) ---
-        function formatWaNumber(phone) {
-            let p = String(phone).replace(/\D/g, '');
-            if (p.startsWith('0')) p = '62' + p.substring(1);
-            if (p.startsWith('8')) p = '62' + p;
-            return p;
+        // --- MOBILE SIDEBAR TOGGLE ---
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            sidebar.classList.toggle('-translate-x-full');
+            backdrop.classList.toggle('hidden');
         }
 
-        function sendManualWa(name, email, phone, password = null) {
-            let appUrl = appState.settings.appUrl || 'https://demoimersgate.vercel.app';
-            let brandName = appState.settings.brandName || 'iMersGate';
-            let senderName = appState.user.name;
-            
-            // Menggunakan Fallback Teks Lupa Password jika password tidak dilempar dari fungsi create
-            let passText = password ? password : "(Silakan Gunakan Fitur Lupa Password)";
-            
-            let msg = `🚀 *Halo ${name},*\nAkun Anda telah berhasil dibuat dan sudah aktif!\n\n🔑 *Detail Akses:*\nEmail: ${email}\nPassword: ${passText}\nLink Login: ${appUrl}\n\n⚠️ *PENTING:*\nIni adalah password temporary (sementara). Demi kenyamanan dan privacy Anda, diwajibkan untuk segera update/ganti password ini di menu Pengaturan Akun di dalam member area setelah berhasil login.\n\n*Terima Kasih,*\n*-- ${senderName} | Official Partner ${brandName}*`;
-            
-            let waLink = `https://wa.me/${formatWaNumber(phone)}?text=${encodeURIComponent(msg)}`;
-            window.open(waLink, '_blank');
+        function closeSidebar() {
+            if (window.innerWidth < 1024) { // lg breakpoint
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+                document.getElementById('sidebar-backdrop').classList.add('hidden');
+            }
         }
+        // ------------------------------
 
         async function callBackend(action, payload = {}) {
             try {
@@ -737,14 +787,13 @@
                 if(appState.user.role === 'admin') {
                     appState.allProducts = data.products;
                 } else {
-                    appState.allProducts = appState.products;
+                    appState.allProducts = appState.products; // Agency hanya bisa berikan produk yang dimilikinya
                 }
                 
                 if (appState.settings) {
                     localStorage.setItem('imersgate_branding', JSON.stringify({
                         brandName: appState.settings.brandName,
-                        logoUrl: appState.settings.logoUrl,
-                        appUrl: appState.settings.appUrl
+                        logoUrl: appState.settings.logoUrl
                     }));
                     applyBranding(appState.settings);
                 }
@@ -766,17 +815,12 @@
                     document.getElementById('setting-wa-token').value = appState.settings.waToken || '';
                     document.getElementById('setting-wa-admin').value = appState.settings.waAdmin || '';
                     
+                    // Load Color Settings
                     loadColorSetting(appState.settings.emailHeaderBg);
 
                     document.getElementById('setting-tpl-agency').value = appState.settings.emailTplAgency || '';
                     document.getElementById('setting-tpl-product').value = appState.settings.emailTplProduct || '';
                     document.getElementById('setting-tpl-reset').value = appState.settings.emailTplReset || '';
-                    
-                    // TOGGLE SWITCHES
-                    const isAutoEmail = appState.settings.enableAutoEmail !== undefined ? (appState.settings.enableAutoEmail === true || appState.settings.enableAutoEmail === 'true') : true;
-                    const isAutoWa = appState.settings.enableAutoWa !== undefined ? (appState.settings.enableAutoWa === true || appState.settings.enableAutoWa === 'true') : true;
-                    document.getElementById('setting-auto-email').checked = isAutoEmail;
-                    document.getElementById('setting-auto-wa').checked = isAutoWa;
                 }
 
             } catch (err) {
@@ -784,6 +828,9 @@
                 if (err.message === "UNAUTHORIZED_ACCESS" || err.message.includes("tidak ditemukan") || err.message.includes("Failed to fetch") || err.message.includes("Unexpected token")) {
                     localStorage.removeItem('imersgate_user');
                     document.getElementById('login-view').classList.remove('hidden');
+                    if(err.message.includes("fetch") || err.message.includes("token")) {
+                        showToast('Error', 'Gagal memuat. Pastikan Anda sudah "New Deployment" pada Apps Script.', true);
+                    }
                 } else {
                     document.getElementById('error-view').classList.remove('hidden');
                     document.getElementById('error-message').innerText = err.message;
@@ -791,10 +838,15 @@
             }
         }
 
+        // --- COLOR PICKER LOGIC ---
         function toggleColorPickers() {
             const type = document.getElementById('setting-bg-type').value;
             const color2Container = document.getElementById('color-2-container');
-            if (type === 'solid') { color2Container.classList.add('hidden'); } else { color2Container.classList.remove('hidden'); }
+            if (type === 'solid') {
+                color2Container.classList.add('hidden');
+            } else {
+                color2Container.classList.remove('hidden');
+            }
             updatePreviewColor();
         }
 
@@ -802,7 +854,14 @@
             const type = document.getElementById('setting-bg-type').value;
             const c1 = document.getElementById('setting-color-1').value;
             const c2 = document.getElementById('setting-color-2').value;
-            let bgString = type === 'solid' ? c1 : `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`;
+            let bgString = '';
+
+            if (type === 'solid') {
+                bgString = c1;
+            } else {
+                bgString = `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`;
+            }
+
             document.getElementById('setting-color-preview').style.background = bgString;
             document.getElementById('setting-email-bg').value = bgString;
         }
@@ -815,18 +874,26 @@
             const preview = document.getElementById('setting-color-preview');
             const color2Container = document.getElementById('color-2-container');
 
-            if (!savedValue) savedValue = 'linear-gradient(135deg, #FF6A00 0%, #cc5500 100%)';
+            if (!savedValue) {
+                savedValue = 'linear-gradient(135deg, #FF6A00 0%, #cc5500 100%)';
+            }
+
             bgInput.value = savedValue;
             preview.style.background = savedValue;
 
             if (savedValue.includes('linear-gradient')) {
                 typeSelect.value = 'gradient';
                 const matches = savedValue.match(/#[0-9a-fA-F]{6}/g);
-                if (matches && matches.length >= 2) { c1Input.value = matches[0]; c2Input.value = matches[1]; }
+                if (matches && matches.length >= 2) {
+                    c1Input.value = matches[0];
+                    c2Input.value = matches[1];
+                }
                 color2Container.classList.remove('hidden');
             } else {
                 typeSelect.value = 'solid';
-                if (savedValue.startsWith('#')) c1Input.value = savedValue;
+                if (savedValue.startsWith('#')) {
+                    c1Input.value = savedValue;
+                }
                 color2Container.classList.add('hidden');
             }
         }
@@ -837,6 +904,7 @@
             
             document.getElementById('doc-title').innerText = `${name} - Dashboard`;
             document.getElementById('loading-brand-name').innerText = `Memuat ${name}...`;
+            
             document.getElementById('login-brand-name').innerText = `${name} Official`;
             
             const forgotEl = document.getElementById('forgot-brand-name');
@@ -873,8 +941,11 @@
                 }
             }
 
+            // Update Email Preview Box Logo
             const previewText = document.getElementById('preview-logo-text');
-            if (previewText) previewText.innerText = name.toUpperCase();
+            if (previewText) {
+                previewText.innerText = name.toUpperCase();
+            }
 
             lucide.createIcons();
         }
@@ -888,7 +959,7 @@
 
         function executeConfirm() {
             const btn = document.getElementById('btn-confirm-action');
-            btn.innerHTML = `<div class="loader w-4 h-4 mr-2 border-2 border-red-200 border-t-white"></div> Memproses...`;
+            btn.innerHTML = `<div class="loader w-4 h-4 mr-2 border-2"></div> Memproses...`;
             btn.disabled = true;
             if(confirmActionCallback) confirmActionCallback();
         }
@@ -906,39 +977,58 @@
         async function handleForgotPassword(e) {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-forgot');
-            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2 border-primary border-t-white"></div> Mengirim...`;
+            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2"></div> Mengirim...`;
             btn.disabled = true;
+
+            const email = document.getElementById('forgot-email').value;
+
             try {
-                await callBackend('resetPassword', { email: document.getElementById('forgot-email').value });
+                await callBackend('resetPassword', { email });
                 showToast('Sukses', 'Password baru telah dikirim ke Email dan WhatsApp Anda.');
                 showLogin();
                 document.getElementById('form-forgot-password').reset();
-            } catch (err) { showToast('Error', err.message, true); } 
-            finally { btn.innerHTML = `Kirim Password Baru`; btn.disabled = false; }
+            } catch (err) {
+                showToast('Error', err.message, true);
+            } finally {
+                btn.innerHTML = `Kirim Password Baru`;
+                btn.disabled = false;
+            }
         }
 
         async function handleLogin(e) {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-login');
-            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2 border-primary border-t-white"></div> Signing in...`;
+            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2"></div> Signing in...`;
             btn.disabled = true;
+
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
             try {
-                const user = await callBackend('loginUser', { email: document.getElementById('login-email').value, password: document.getElementById('login-password').value });
+                const user = await callBackend('loginUser', { email, password });
                 localStorage.setItem('imersgate_user', JSON.stringify(user));
+                
                 document.getElementById('login-view').classList.add('hidden');
                 document.getElementById('loading-view').classList.remove('hidden');
                 await fetchInitialData();
-            } catch (err) { showToast('Login Gagal', err.message, true); } 
-            finally { btn.innerHTML = `Sign In`; btn.disabled = false; }
+            } catch (err) {
+                showToast('Login Gagal', err.message, true);
+            } finally {
+                btn.innerHTML = `Sign In`;
+                btn.disabled = false;
+            }
         }
 
-        function logout() { localStorage.removeItem('imersgate_user'); window.location.reload(); }
+        function logout() {
+            localStorage.removeItem('imersgate_user');
+            window.location.reload();
+        }
 
         async function handleUpdateProfile(e) {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-profile');
             const originalText = btn.innerHTML;
-            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2 border-primary border-t-white"></div> Menyimpan...`;
+            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2"></div> Menyimpan...`;
             btn.disabled = true;
 
             const newName = document.getElementById('profile-name').value;
@@ -956,49 +1046,19 @@
             try {
                 await callBackend('updateUserProfile', { userId: appState.user.id, currentPassword: oldPass, newPassword: newPass, newName, newPhone });
                 showToast('Sukses', 'Profil berhasil diperbarui.');
+                
                 appState.user.name = newName;
                 document.getElementById('user-name').innerText = newName;
                 document.getElementById('user-avatar').innerText = newName.charAt(0).toUpperCase();
+                
                 document.getElementById('profile-old-password').value = '';
                 document.getElementById('profile-new-password').value = '';
-            } catch (err) { showToast('Error', err.message, true); } 
-            finally { btn.innerHTML = originalText; btn.disabled = false; }
-        }
-
-        async function handleSaveSettings(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btn-submit-settings');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2 border-primary border-t-white"></div> Menyimpan...`;
-            btn.disabled = true;
-
-            const payload = {
-                brandName: document.getElementById('setting-brand-name').value,
-                logoUrl: document.getElementById('setting-logo-url').value,
-                appUrl: document.getElementById('setting-app-url').value,
-                waProvider: document.getElementById('setting-wa-provider').value,
-                waToken: document.getElementById('setting-wa-token').value,
-                waAdmin: document.getElementById('setting-wa-admin').value,
-                emailHeaderBg: document.getElementById('setting-email-bg').value,
-                emailTplAgency: document.getElementById('setting-tpl-agency').value,
-                emailTplProduct: document.getElementById('setting-tpl-product').value,
-                emailTplReset: document.getElementById('setting-tpl-reset').value,
-                enableAutoEmail: document.getElementById('setting-auto-email').checked,
-                enableAutoWa: document.getElementById('setting-auto-wa').checked
-            };
-
-            try {
-                await callBackend('updateSettings', { adminId: appState.user.id, settings: payload });
-                showToast('Sukses', 'Pengaturan sistem berhasil disimpan.');
-                appState.settings = payload;
-                localStorage.setItem('imersgate_branding', JSON.stringify({ 
-                    brandName: payload.brandName, 
-                    logoUrl: payload.logoUrl,
-                    appUrl: payload.appUrl 
-                }));
-                applyBranding(payload);
-            } catch (err) { showToast('Error', err.message, true); } 
-            finally { btn.innerHTML = originalText; btn.disabled = false; }
+            } catch (err) {
+                showToast('Error', err.message, true);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
         }
 
         function buildUI() {
@@ -1008,101 +1068,85 @@
             document.getElementById('header-role-badge').innerText = appState.user.role;
 
             const navMenu = document.getElementById('nav-menu');
-            const mobileNav = document.getElementById('mobile-nav-menu');
             navMenu.innerHTML = '';
-            mobileNav.innerHTML = '';
-
-            const addNavItems = (label, icon, viewId, isActive) => {
-                navMenu.appendChild(createDesktopNavItem(label, icon, viewId, isActive));
-                mobileNav.appendChild(createMobileNavItem(label, icon, viewId, isActive));
-            };
             
-            addNavItems('Dashboard', 'layout-dashboard', 'dashboard', true);
-            addNavItems('Agencies', 'users', 'agencies', false);
-
-            document.querySelectorAll('.view-section.dynamic-view').forEach(el => el.remove());
-            appState.dynamicMenus.forEach(menu => {
-                const iconName = menu.icon || 'file-text'; 
-                addNavItems(menu.menu_name, iconName, `dyn-${menu.id}`, false);
-
-                const viewDiv = document.createElement('div');
-                viewDiv.id = `view-dyn-${menu.id}`;
-                viewDiv.className = 'view-section dynamic-view hidden fade-in';
-                viewDiv.innerHTML = `
-                    <div class="bg-card border border-borderMain p-4 sm:p-8 rounded-xl shadow-lg">
-                        <div class="prose max-w-none text-gray-300 leading-relaxed text-sm sm:text-base">
-                            ${menu.html_content || '<p class="text-gray-500 italic">Belum ada konten.</p>'}
-                        </div>
-                    </div>
-                `;
-                document.getElementById('content-area').appendChild(viewDiv);
-            });
+            navMenu.appendChild(createNavItem('Dashboard', 'layout-dashboard', 'dashboard', true));
             
             if (appState.user.role === 'admin') {
-                addNavItems('Pengaturan', 'settings', 'settings', false);
+                navMenu.appendChild(createNavItem('Agencies', 'users', 'agencies', false));
+                navMenu.appendChild(createNavItem('Pengaturan', 'settings', 'settings', false));
                 document.getElementById('btn-add-product').classList.remove('hidden');
             }
-            addNavItems('Akun Saya', 'user', 'account', false);
 
+            // Always show create agency button for ALL roles
+            const createBtnContainer = document.createElement('div');
+            createBtnContainer.className = 'mt-6 px-4';
+            createBtnContainer.innerHTML = `
+                <button onclick="openModal('modal-create-agency')" class="w-full bg-primary hover:bg-primaryHover text-white py-2.5 rounded-lg text-sm font-medium flex items-center justify-center transition-colors shadow-lg shadow-primary/20">
+                    <i data-lucide="plus-circle" class="w-4 h-4 mr-2"></i> New Agency
+                </button>
+            `;
+            navMenu.appendChild(createBtnContainer);
+            
+            // Re-init icons for dynamic content
             lucide.createIcons();
+
             renderDashboard();
-            renderAgenciesTable();
+            if(appState.user.role === 'admin') renderAgenciesTable();
         }
 
-        function createDesktopNavItem(label, iconName, viewId, isActive) {
+        function createNavItem(label, iconName, viewId, isActive) {
             const a = document.createElement('a');
             a.href = '#';
-            a.id = `desktop-nav-${viewId}`;
-            a.className = `flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-borderMain text-primary' : 'text-gray-400 hover:bg-borderMain hover:text-white'}`;
+            a.className = `flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-indigo-600/10 text-indigo-400' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`;
             a.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5 mr-3"></i> ${label}`;
-            a.onclick = (e) => { e.preventDefault(); switchView(viewId); };
-            return a;
-        }
-
-        function createMobileNavItem(label, iconName, viewId, isActive) {
-            const a = document.createElement('a');
-            a.href = '#';
-            a.id = `mobile-nav-${viewId}`;
-            a.className = `flex-shrink-0 flex flex-col items-center justify-center w-[72px] sm:w-20 h-full transition-colors ${isActive ? 'text-primary' : 'text-gray-400 hover:text-gray-200'}`;
-            a.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5 mb-1"></i><span class="text-[10px] sm:text-xs truncate w-full text-center px-1">${label}</span>`;
-            a.onclick = (e) => { e.preventDefault(); switchView(viewId); };
+            a.onclick = (e) => {
+                e.preventDefault();
+                switchView(viewId);
+                document.querySelectorAll('#nav-menu a').forEach(el => {
+                    el.className = 'flex items-center px-4 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors';
+                });
+                a.className = 'flex items-center px-4 py-2.5 rounded-lg text-sm font-medium bg-indigo-600/10 text-indigo-400 transition-colors';
+                
+                // AUTO CLOSE SIDEBAR ON MOBILE
+                closeSidebar();
+            };
             return a;
         }
 
         function switchView(viewId) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-            const targetView = document.getElementById(`view-${viewId}`);
-            if(targetView) targetView.classList.remove('hidden');
-
-            let title = viewId.charAt(0).toUpperCase() + viewId.slice(1);
-            if(viewId.startsWith('dyn-')) {
-                const menuId = viewId.replace('dyn-', '');
-                const menuObj = appState.dynamicMenus.find(m => String(m.id) === String(menuId));
-                if(menuObj) title = menuObj.menu_name;
-            } else if (viewId === 'dashboard') title = 'Dashboard';
-            document.getElementById('page-title').innerText = title;
-
-            document.querySelectorAll('#nav-menu a[id^="desktop-nav-"]').forEach(el => { el.className = 'flex items-center px-4 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-borderMain hover:text-white transition-colors'; });
-            const activeDesktopNav = document.getElementById(`desktop-nav-${viewId}`);
-            if (activeDesktopNav) activeDesktopNav.className = 'flex items-center px-4 py-2.5 rounded-lg text-sm font-medium bg-borderMain text-primary transition-colors';
-
-            document.querySelectorAll('#mobile-nav-menu a').forEach(el => { el.className = 'flex-shrink-0 flex flex-col items-center justify-center w-[72px] sm:w-20 h-full transition-colors text-gray-400 hover:text-gray-200'; });
-            const activeMobileNav = document.getElementById(`mobile-nav-${viewId}`);
-            if (activeMobileNav) activeMobileNav.className = 'flex-shrink-0 flex flex-col items-center justify-center w-[72px] sm:w-20 h-full transition-colors text-primary';
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+            document.getElementById('page-title').innerText = viewId.charAt(0).toUpperCase() + viewId.slice(1);
         }
 
         function renderDashboard() {
+            // Stats Grid
             const statsHtml = `
                 <div class="bg-card p-4 sm:p-6 rounded-xl shadow-lg border border-borderMain flex items-center">
-                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mr-4 flex-shrink-0"><i data-lucide="package" class="w-6 h-6 text-primary"></i></div>
-                    <div class="overflow-hidden"><p class="text-xs sm:text-sm text-gray-400 font-medium truncate">My Products</p><h4 class="text-xl sm:text-2xl font-bold text-textMain">${appState.products.length}</h4></div>
+                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mr-4 flex-shrink-0">
+                        <i data-lucide="package" class="w-6 h-6 text-primary"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <p class="text-xs sm:text-sm text-gray-400 font-medium truncate">My Products</p>
+                        <h4 class="text-xl sm:text-2xl font-bold text-textMain">${appState.products.length}</h4>
+                    </div>
                 </div>
+                ${appState.user.role === 'admin' ? `
                 <div class="bg-card p-4 sm:p-6 rounded-xl shadow-lg border border-borderMain flex items-center">
-                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mr-4 flex-shrink-0"><i data-lucide="users" class="w-6 h-6 text-primary"></i></div>
-                    <div class="overflow-hidden"><p class="text-xs sm:text-sm text-gray-400 font-medium truncate">Agency Bawahan</p><h4 class="text-xl sm:text-2xl font-bold text-textMain">${appState.agencies.length}</h4></div>
-                </div>`;
+                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mr-4 flex-shrink-0">
+                        <i data-lucide="users" class="w-6 h-6 text-primary"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <p class="text-xs sm:text-sm text-gray-400 font-medium truncate">Agency Bawahan</p>
+                        <h4 class="text-xl sm:text-2xl font-bold text-textMain">${appState.agencies.length}</h4>
+                    </div>
+                </div>
+                ` : ''}
+            `;
             document.getElementById('stats-container').innerHTML = statsHtml;
 
+            // Products Grid
             const grid = document.getElementById('products-grid');
             if (appState.products.length === 0) {
                 grid.innerHTML = `
@@ -1110,7 +1154,8 @@
                         <div class="w-16 h-16 bg-[#222] rounded-full flex items-center justify-center mb-4"><i data-lucide="package-open" class="w-8 h-8 text-gray-500"></i></div>
                         <h4 class="text-textMain font-bold">No Products Yet</h4>
                         <p class="text-gray-400 text-sm mt-1 max-w-sm">You don't have any produk assigned to your account. Contact your administrator.</p>
-                    </div>`;
+                    </div>
+                `;
             } else {
                 grid.innerHTML = appState.products.map(p => `
                     <div class="bg-card rounded-xl shadow-lg border border-borderMain overflow-hidden hover:shadow-xl hover:border-primary/50 transition-all group flex flex-col h-full relative">
@@ -1137,7 +1182,8 @@
                                 <button onclick="viewProductContent('${p.id}')" class="text-primary text-xs sm:text-sm font-medium hover:text-primaryHover bg-dark px-3 py-1.5 rounded-lg border border-borderMain transition-colors flex items-center">Akses <i data-lucide="arrow-right" class="w-3 h-3 sm:w-4 sm:h-4 ml-1"></i></button>
                             </div>
                         </div>
-                    </div>`).join('');
+                    </div>
+                `).join('');
             }
             lucide.createIcons();
         }
@@ -1155,9 +1201,10 @@
         function renderAgenciesTable() {
             const tbody = document.getElementById('agencies-table-body');
             if (appState.agencies.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500 text-sm">Belum ada agency yang Anda buat.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">No agencies registered yet.</td></tr>`;
                 return;
             }
+
             tbody.innerHTML = appState.agencies.map(a => `
                 <tr class="hover:bg-borderMain transition-colors border-b border-borderMain">
                     <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
@@ -1191,15 +1238,17 @@
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     </td>
-                </tr>`).join('');
+                </tr>
+            `).join('');
             lucide.createIcons();
         }
 
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-        function closeModal(id) { 
-            document.getElementById(id).classList.add('hidden'); 
-            const btn = document.getElementById('btn-confirm-action');
-            if(btn) { btn.innerHTML = `Hapus`; btn.disabled = false; }
+        // --- Form Handlers & Modals ---
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
             if(id === 'modal-create-agency') document.getElementById('form-create-agency').reset();
             if(id === 'modal-add-product') document.getElementById('form-add-product').reset();
         }
@@ -1236,7 +1285,7 @@
 
             try {
                 const result = await callBackend('createAgency', { creatorId: appState.user.id, agencyData: payload });
-                showToast('Success', 'Agency berhasil dibuat.');
+                showToast('Success', 'Agency created and notified successfully.');
                 closeModal('modal-create-agency');
                 
                 const data = await callBackend('getDashboardData', { userId: appState.user.id });
@@ -1404,7 +1453,7 @@
             document.getElementById('toast-message').innerText = message;
             
             const iconWrap = document.getElementById('toast-icon');
-            iconWrap.className = isError ? 'text-red-500 mr-3 mt-0.5 flex-shrink-0' : 'text-primary mr-3 mt-0.5 flex-shrink-0';
+            iconWrap.className = isError ? 'text-red-500 mr-3 mt-0.5' : 'text-primary mr-3 mt-0.5';
             iconWrap.innerHTML = isError ? '<i data-lucide="alert-circle" class="w-5 h-5"></i>' : '<i data-lucide="check-circle" class="w-5 h-5"></i>';
             
             toast.classList.remove('translate-x-full', 'opacity-0');
