@@ -821,6 +821,12 @@
                     document.getElementById('setting-tpl-agency').value = appState.settings.emailTplAgency || '';
                     document.getElementById('setting-tpl-product').value = appState.settings.emailTplProduct || '';
                     document.getElementById('setting-tpl-reset').value = appState.settings.emailTplReset || '';
+                    
+                    // TOGGLE SWITCHES
+                    const isAutoEmail = appState.settings.enableAutoEmail !== undefined ? (appState.settings.enableAutoEmail === true || appState.settings.enableAutoEmail === 'true') : true;
+                    const isAutoWa = appState.settings.enableAutoWa !== undefined ? (appState.settings.enableAutoWa === true || appState.settings.enableAutoWa === 'true') : true;
+                    document.getElementById('setting-auto-email').checked = isAutoEmail;
+                    document.getElementById('setting-auto-wa').checked = isAutoWa;
                 }
 
             } catch (err) {
@@ -959,7 +965,7 @@
 
         function executeConfirm() {
             const btn = document.getElementById('btn-confirm-action');
-            btn.innerHTML = `<div class="loader w-4 h-4 mr-2 border-2"></div> Memproses...`;
+            btn.innerHTML = `<div class="loader w-4 h-4 mr-2 border-2 border-red-200 border-t-white"></div> Memproses...`;
             btn.disabled = true;
             if(confirmActionCallback) confirmActionCallback();
         }
@@ -977,7 +983,7 @@
         async function handleForgotPassword(e) {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-forgot');
-            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2"></div> Mengirim...`;
+            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2 border-primary border-t-white"></div> Mengirim...`;
             btn.disabled = true;
 
             const email = document.getElementById('forgot-email').value;
@@ -998,7 +1004,7 @@
         async function handleLogin(e) {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-login');
-            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2"></div> Signing in...`;
+            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2 border-primary border-t-white"></div> Signing in...`;
             btn.disabled = true;
 
             const email = document.getElementById('login-email').value;
@@ -1007,7 +1013,6 @@
             try {
                 const user = await callBackend('loginUser', { email, password });
                 localStorage.setItem('imersgate_user', JSON.stringify(user));
-                
                 document.getElementById('login-view').classList.add('hidden');
                 document.getElementById('loading-view').classList.remove('hidden');
                 await fetchInitialData();
@@ -1028,7 +1033,7 @@
             e.preventDefault();
             const btn = document.getElementById('btn-submit-profile');
             const originalText = btn.innerHTML;
-            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2"></div> Menyimpan...`;
+            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2 border-primary border-t-white"></div> Menyimpan...`;
             btn.disabled = true;
 
             const newName = document.getElementById('profile-name').value;
@@ -1046,19 +1051,49 @@
             try {
                 await callBackend('updateUserProfile', { userId: appState.user.id, currentPassword: oldPass, newPassword: newPass, newName, newPhone });
                 showToast('Sukses', 'Profil berhasil diperbarui.');
-                
                 appState.user.name = newName;
                 document.getElementById('user-name').innerText = newName;
                 document.getElementById('user-avatar').innerText = newName.charAt(0).toUpperCase();
-                
                 document.getElementById('profile-old-password').value = '';
                 document.getElementById('profile-new-password').value = '';
-            } catch (err) {
-                showToast('Error', err.message, true);
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
+            } catch (err) { showToast('Error', err.message, true); } 
+            finally { btn.innerHTML = originalText; btn.disabled = false; }
+        }
+
+        async function handleSaveSettings(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-settings');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<div class="loader mr-2 w-4 h-4 border-2 border-primary border-t-white"></div> Menyimpan...`;
+            btn.disabled = true;
+
+            const payload = {
+                brandName: document.getElementById('setting-brand-name').value,
+                logoUrl: document.getElementById('setting-logo-url').value,
+                appUrl: document.getElementById('setting-app-url').value,
+                waProvider: document.getElementById('setting-wa-provider').value,
+                waToken: document.getElementById('setting-wa-token').value,
+                waAdmin: document.getElementById('setting-wa-admin').value,
+                emailHeaderBg: document.getElementById('setting-email-bg').value,
+                emailTplAgency: document.getElementById('setting-tpl-agency').value,
+                emailTplProduct: document.getElementById('setting-tpl-product').value,
+                emailTplReset: document.getElementById('setting-tpl-reset').value,
+                enableAutoEmail: document.getElementById('setting-auto-email').checked,
+                enableAutoWa: document.getElementById('setting-auto-wa').checked
+            };
+
+            try {
+                await callBackend('updateSettings', { adminId: appState.user.id, settings: payload });
+                showToast('Sukses', 'Pengaturan sistem berhasil disimpan.');
+                appState.settings = payload;
+                localStorage.setItem('imersgate_branding', JSON.stringify({ 
+                    brandName: payload.brandName, 
+                    logoUrl: payload.logoUrl,
+                    appUrl: payload.appUrl 
+                }));
+                applyBranding(payload);
+            } catch (err) { showToast('Error', err.message, true); } 
+            finally { btn.innerHTML = originalText; btn.disabled = false; }
         }
 
         function buildUI() {
@@ -1068,60 +1103,118 @@
             document.getElementById('header-role-badge').innerText = appState.user.role;
 
             const navMenu = document.getElementById('nav-menu');
+            const mobileNav = document.getElementById('mobile-nav-menu');
             navMenu.innerHTML = '';
+            mobileNav.innerHTML = '';
+
+            const addNavItems = (label, icon, viewId, isActive) => {
+                navMenu.appendChild(createDesktopNavItem(label, icon, viewId, isActive));
+                mobileNav.appendChild(createMobileNavItem(label, icon, viewId, isActive));
+            };
             
-            navMenu.appendChild(createNavItem('Dashboard', 'layout-dashboard', 'dashboard', true));
+            // Core Menus
+            addNavItems('Dashboard', 'layout-dashboard', 'dashboard', true);
+            addNavItems('Agencies', 'users', 'agencies', false);
+
+            // Render Dynamic Menus
+            document.querySelectorAll('.view-section.dynamic-view').forEach(el => el.remove());
+            appState.dynamicMenus.forEach(menu => {
+                const iconName = menu.icon || 'file-text'; 
+                addNavItems(menu.menu_name, iconName, `dyn-${menu.id}`, false);
+
+                const viewDiv = document.createElement('div');
+                viewDiv.id = `view-dyn-${menu.id}`;
+                viewDiv.className = 'view-section dynamic-view hidden fade-in';
+                viewDiv.innerHTML = `
+                    <div class="bg-card border border-borderMain p-4 sm:p-8 rounded-xl shadow-lg">
+                        <div class="prose max-w-none text-gray-300 leading-relaxed text-sm sm:text-base break-words">
+                            ${menu.html_content || '<p class="text-gray-500 italic">Belum ada konten.</p>'}
+                        </div>
+                    </div>
+                `;
+                document.getElementById('content-area').appendChild(viewDiv);
+            });
             
             if (appState.user.role === 'admin') {
-                navMenu.appendChild(createNavItem('Agencies', 'users', 'agencies', false));
-                navMenu.appendChild(createNavItem('Pengaturan', 'settings', 'settings', false));
+                addNavItems('Pengaturan', 'settings', 'settings', false);
                 document.getElementById('btn-add-product').classList.remove('hidden');
             }
+            
+            // AKUN SAYA WAJIB ADA AGAR BISA UBAH PASSWORD
+            addNavItems('Akun Saya', 'user', 'account', false);
 
-            // Always show create agency button for ALL roles
             const createBtnContainer = document.createElement('div');
-            createBtnContainer.className = 'mt-6 px-4';
+            createBtnContainer.className = 'mt-6 px-4 hidden lg:block'; // Sembunyikan tombol create agency sidebar di mode mobile, tapi simpan
             createBtnContainer.innerHTML = `
-                <button onclick="openModal('modal-create-agency')" class="w-full bg-primary hover:bg-primaryHover text-white py-2.5 rounded-lg text-sm font-medium flex items-center justify-center transition-colors shadow-lg shadow-primary/20">
+                <button onclick="openCreateAgencyModal()" class="w-full bg-primary hover:bg-primaryHover text-white py-2.5 rounded-lg text-sm font-medium flex items-center justify-center transition-colors shadow-lg shadow-primary/20">
                     <i data-lucide="plus-circle" class="w-4 h-4 mr-2"></i> New Agency
                 </button>
             `;
             navMenu.appendChild(createBtnContainer);
             
-            // Re-init icons for dynamic content
             lucide.createIcons();
-
             renderDashboard();
-            if(appState.user.role === 'admin') renderAgenciesTable();
+            renderAgenciesTable();
         }
 
-        function createNavItem(label, iconName, viewId, isActive) {
+        function createDesktopNavItem(label, iconName, viewId, isActive) {
             const a = document.createElement('a');
             a.href = '#';
-            a.className = `flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-indigo-600/10 text-indigo-400' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`;
+            a.id = `desktop-nav-${viewId}`;
+            a.className = `flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-borderMain text-primary' : 'text-gray-400 hover:bg-borderMain hover:text-white'}`;
             a.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5 mr-3"></i> ${label}`;
             a.onclick = (e) => {
                 e.preventDefault();
                 switchView(viewId);
-                document.querySelectorAll('#nav-menu a').forEach(el => {
-                    el.className = 'flex items-center px-4 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors';
-                });
-                a.className = 'flex items-center px-4 py-2.5 rounded-lg text-sm font-medium bg-indigo-600/10 text-indigo-400 transition-colors';
-                
-                // AUTO CLOSE SIDEBAR ON MOBILE
-                closeSidebar();
+                closeSidebar(); // Autoclose mobile sidebar
+            };
+            return a;
+        }
+
+        function createMobileNavItem(label, iconName, viewId, isActive) {
+            const a = document.createElement('a');
+            a.href = '#';
+            a.id = `mobile-nav-${viewId}`;
+            a.className = `flex-shrink-0 flex flex-col items-center justify-center w-[72px] sm:w-20 h-full transition-colors ${isActive ? 'text-primary' : 'text-gray-400 hover:text-gray-200'}`;
+            a.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5 mb-1"></i><span class="text-[10px] sm:text-xs truncate w-full text-center px-1">${label}</span>`;
+            a.onclick = (e) => {
+                e.preventDefault();
+                switchView(viewId);
             };
             return a;
         }
 
         function switchView(viewId) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`view-${viewId}`).classList.remove('hidden');
-            document.getElementById('page-title').innerText = viewId.charAt(0).toUpperCase() + viewId.slice(1);
+            
+            const targetView = document.getElementById(`view-${viewId}`);
+            if(targetView) targetView.classList.remove('hidden');
+
+            let title = viewId.charAt(0).toUpperCase() + viewId.slice(1);
+            if(viewId.startsWith('dyn-')) {
+                const menuId = viewId.replace('dyn-', '');
+                const menuObj = appState.dynamicMenus.find(m => String(m.id) === String(menuId));
+                if(menuObj) title = menuObj.menu_name;
+            } else if (viewId === 'dashboard') {
+                title = 'Dashboard';
+            }
+
+            document.getElementById('page-title').innerText = title;
+
+            document.querySelectorAll('#nav-menu a[id^="desktop-nav-"]').forEach(el => {
+                el.className = 'flex items-center px-4 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-borderMain hover:text-white transition-colors';
+            });
+            const activeDesktopNav = document.getElementById(`desktop-nav-${viewId}`);
+            if (activeDesktopNav) activeDesktopNav.className = 'flex items-center px-4 py-2.5 rounded-lg text-sm font-medium bg-borderMain text-primary transition-colors';
+
+            document.querySelectorAll('#mobile-nav-menu a').forEach(el => {
+                el.className = 'flex-shrink-0 flex flex-col items-center justify-center w-[72px] sm:w-20 h-full transition-colors text-gray-400 hover:text-gray-200';
+            });
+            const activeMobileNav = document.getElementById(`mobile-nav-${viewId}`);
+            if (activeMobileNav) activeMobileNav.className = 'flex-shrink-0 flex flex-col items-center justify-center w-[72px] sm:w-20 h-full transition-colors text-primary';
         }
 
         function renderDashboard() {
-            // Stats Grid
             const statsHtml = `
                 <div class="bg-card p-4 sm:p-6 rounded-xl shadow-lg border border-borderMain flex items-center">
                     <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mr-4 flex-shrink-0">
@@ -1132,7 +1225,6 @@
                         <h4 class="text-xl sm:text-2xl font-bold text-textMain">${appState.products.length}</h4>
                     </div>
                 </div>
-                ${appState.user.role === 'admin' ? `
                 <div class="bg-card p-4 sm:p-6 rounded-xl shadow-lg border border-borderMain flex items-center">
                     <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mr-4 flex-shrink-0">
                         <i data-lucide="users" class="w-6 h-6 text-primary"></i>
@@ -1142,11 +1234,9 @@
                         <h4 class="text-xl sm:text-2xl font-bold text-textMain">${appState.agencies.length}</h4>
                     </div>
                 </div>
-                ` : ''}
             `;
             document.getElementById('stats-container').innerHTML = statsHtml;
 
-            // Products Grid
             const grid = document.getElementById('products-grid');
             if (appState.products.length === 0) {
                 grid.innerHTML = `
@@ -1154,8 +1244,7 @@
                         <div class="w-16 h-16 bg-[#222] rounded-full flex items-center justify-center mb-4"><i data-lucide="package-open" class="w-8 h-8 text-gray-500"></i></div>
                         <h4 class="text-textMain font-bold">No Products Yet</h4>
                         <p class="text-gray-400 text-sm mt-1 max-w-sm">You don't have any produk assigned to your account. Contact your administrator.</p>
-                    </div>
-                `;
+                    </div>`;
             } else {
                 grid.innerHTML = appState.products.map(p => `
                     <div class="bg-card rounded-xl shadow-lg border border-borderMain overflow-hidden hover:shadow-xl hover:border-primary/50 transition-all group flex flex-col h-full relative">
@@ -1182,8 +1271,7 @@
                                 <button onclick="viewProductContent('${p.id}')" class="text-primary text-xs sm:text-sm font-medium hover:text-primaryHover bg-dark px-3 py-1.5 rounded-lg border border-borderMain transition-colors flex items-center">Akses <i data-lucide="arrow-right" class="w-3 h-3 sm:w-4 sm:h-4 ml-1"></i></button>
                             </div>
                         </div>
-                    </div>
-                `).join('');
+                    </div>`).join('');
             }
             lucide.createIcons();
         }
@@ -1201,10 +1289,9 @@
         function renderAgenciesTable() {
             const tbody = document.getElementById('agencies-table-body');
             if (appState.agencies.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">No agencies registered yet.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500 text-sm">Belum ada agency yang Anda buat.</td></tr>`;
                 return;
             }
-
             tbody.innerHTML = appState.agencies.map(a => `
                 <tr class="hover:bg-borderMain transition-colors border-b border-borderMain">
                     <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
@@ -1238,17 +1325,15 @@
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     </td>
-                </tr>
-            `).join('');
+                </tr>`).join('');
             lucide.createIcons();
         }
 
-        // --- Form Handlers & Modals ---
-        function openModal(id) {
-            document.getElementById(id).classList.remove('hidden');
-        }
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { 
+            document.getElementById(id).classList.add('hidden'); 
+            const btn = document.getElementById('btn-confirm-action');
+            if(btn) { btn.innerHTML = `Hapus`; btn.disabled = false; }
             if(id === 'modal-create-agency') document.getElementById('form-create-agency').reset();
             if(id === 'modal-add-product') document.getElementById('form-add-product').reset();
         }
@@ -1285,7 +1370,7 @@
 
             try {
                 const result = await callBackend('createAgency', { creatorId: appState.user.id, agencyData: payload });
-                showToast('Success', 'Agency created and notified successfully.');
+                showToast('Success', 'Agency berhasil dibuat.');
                 closeModal('modal-create-agency');
                 
                 const data = await callBackend('getDashboardData', { userId: appState.user.id });
@@ -1453,7 +1538,7 @@
             document.getElementById('toast-message').innerText = message;
             
             const iconWrap = document.getElementById('toast-icon');
-            iconWrap.className = isError ? 'text-red-500 mr-3 mt-0.5' : 'text-primary mr-3 mt-0.5';
+            iconWrap.className = isError ? 'text-red-500 mr-3 mt-0.5 flex-shrink-0' : 'text-primary mr-3 mt-0.5 flex-shrink-0';
             iconWrap.innerHTML = isError ? '<i data-lucide="alert-circle" class="w-5 h-5"></i>' : '<i data-lucide="check-circle" class="w-5 h-5"></i>';
             
             toast.classList.remove('translate-x-full', 'opacity-0');
