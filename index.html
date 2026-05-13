@@ -42,18 +42,14 @@
             -webkit-text-fill-color: #F5F5F5 !important;
         }
 
-        /* Checkbox styling */
         .custom-checkbox { accent-color: #FF6A00; width: 1.1rem; height: 1.1rem; cursor: pointer; }
-        
-        /* Custom Color Picker Input Styling */
         input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
         input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
-
-        /* Sembunyikan scrollbar di mobile navbar biar estetik */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .toggle-checkbox:checked { right: 0; border-color: #FF6A00; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #FF6A00; }
 
-        /* KUNCI HTML RESPONSIVE (Diperbaiki agar tidak merusak Grid Layout) */
         #view-product-content *, .dynamic-view * {
             max-width: 100% !important;
             box-sizing: border-box !important;
@@ -61,13 +57,17 @@
         }
         #view-product-content img, 
         #view-product-content video, 
-        #view-product-content iframe,
         .dynamic-view img,
-        .dynamic-view video,
-        .dynamic-view iframe {
+        .dynamic-view video {
             max-width: 100% !important;
             border-radius: 0.5rem;
-            /* Dihapus: height: auto !important; dan display: block; yang bikin grid rusak */
+        }
+        #view-product-content iframe, 
+        .dynamic-view iframe {
+            width: 100% !important;
+            aspect-ratio: 16 / 9; /* Kunci rasio video youtube agar tidak gepeng */
+            height: auto !important;
+            border-radius: 0.5rem;
         }
         #view-product-content table, .dynamic-view table {
             display: block;
@@ -75,10 +75,55 @@
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
+
+        /* CSS Khusus untuk Mempercantik Inputan HTML dari Google Sheets */
+        .imers-grid {
+            display: grid;
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        @media (min-width: 640px) { /* Tablet */
+            .imers-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (min-width: 1024px) { /* Laptop */
+            .imers-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
         
-        /* Toggle Switch Custom */
-        .toggle-checkbox:checked { right: 0; border-color: #FF6A00; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #FF6A00; }
+        .imers-card {
+            background-color: #1A1A1A; /* Warna bg kartu */
+            border: 1px solid #2A2A2A;
+            border-radius: 1rem;
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .imers-card:hover {
+            transform: translateY(-5px); /* Efek melayang */
+            box-shadow: 0 10px 25px -5px rgba(255, 106, 0, 0.25); /* Bayangan Orange */
+            border-color: #FF6A00;
+        }
+        .imers-card iframe, .imers-card video, .imers-card img {
+            width: 100% !important;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+        }
+        .imers-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #F5F5F5;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+        .imers-card p {
+            font-size: 0.875rem;
+            color: #9ca3af;
+            line-height: 1.5;
+            margin: 0;
+        }
     </style>
 </head>
 <body class="bg-dark text-textMain font-sans antialiased h-screen overflow-hidden flex relative">
@@ -186,7 +231,7 @@
         <!-- SIDEBAR BACKDROP FOR MOBILE -->
         <div id="sidebar-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 hidden lg:hidden" onclick="toggleSidebar()"></div>
 
-        <!-- SIDEBAR -->
+        <!-- SIDEBAR (Hanya tampil di Laptop/PC) -->
         <aside id="sidebar" class="w-64 bg-dark border-r border-borderMain flex flex-col transition-transform duration-300 z-30 fixed inset-y-0 left-0 transform -translate-x-full lg:translate-x-0 lg:static h-full">
             <div class="h-16 flex items-center justify-between px-6 border-b border-borderMain bg-card/50 flex-shrink-0">
                 <div class="flex items-center overflow-hidden">
@@ -217,7 +262,6 @@
 
         <!-- MAIN CONTENT -->
         <main class="flex-1 flex flex-col h-full bg-dark overflow-hidden relative w-full">
-            <!-- HEADER (With Hamburger Menu for Mobile) -->
             <header class="h-16 bg-card border-b border-borderMain flex items-center justify-between px-4 sm:px-8 z-10 flex-shrink-0">
                 <div class="flex items-center">
                     <button onclick="toggleSidebar()" class="mr-4 lg:hidden text-gray-400 hover:text-white focus:outline-none p-1 rounded-md bg-dark border border-borderMain">
@@ -230,7 +274,6 @@
                 </div>
             </header>
 
-            <!-- pb-20 agar tidak tertutup bottom navbar di mobile -->
             <div class="flex-1 overflow-y-auto p-4 sm:p-8 w-full pb-24 lg:pb-8" id="content-area">
                 
                 <!-- DASHBOARD VIEW -->
@@ -261,7 +304,6 @@
                         </button>
                     </div>
                     <div class="bg-card rounded-xl shadow-lg border border-borderMain overflow-hidden">
-                        <!-- Wrapper overflow-x-auto for horizontal scroll on mobile -->
                         <div class="overflow-x-auto w-full">
                             <table class="min-w-full divide-y divide-borderMain">
                                 <thead class="bg-[#222]">
@@ -314,7 +356,7 @@
                                         </div>
                                         <div class="flex flex-col">
                                             <span class="text-sm text-textMain font-medium">Kirim WhatsApp Otomatis</span>
-                                            <span class="text-xs text-gray-500">Kirim pemberitahuan melalui provider API (StarSender/Fonnte).</span>
+                                            <span class="text-xs text-gray-500">Kirim pemberitahuan melalui provider API (StarSender/Xsender/Fonnte).</span>
                                         </div>
                                     </label>
 
@@ -323,11 +365,6 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- Styling Tambahan untuk Toggle Switch -->
-                            <style>
-                                input:checked ~ .dot { transform: translateX(100%); background-color: white; }
-                                input:checked ~ .toggle-label { background-color: #FF6A00; border-color: #FF6A00; }
-                            </style>
 
                             <!-- Branding Settings -->
                             <div class="bg-[#222] border border-borderMain rounded-lg p-4">
@@ -390,7 +427,6 @@
                                     <code class="text-gray-300">{login_btn}</code> = Tombol Login otomatis
                                 </div>
                                 <div class="space-y-5">
-                                    <!-- UI Color Picker Visual -->
                                     <div class="bg-dark p-4 border border-borderMain rounded-lg">
                                         <label class="block text-sm font-bold text-gray-300 mb-3">Background Header Email</label>
                                         
@@ -418,10 +454,8 @@
                                                 <span class="text-white font-bold text-lg sm:text-xl tracking-wide opacity-80 truncate px-2" id="preview-logo-text">LOGO BRAND</span>
                                             </div>
                                         </div>
-                                        
                                         <input type="hidden" id="setting-email-bg" value="linear-gradient(135deg, #FF6A00 0%, #cc5500 100%)">
                                     </div>
-                                    <!-- End UI Color Picker -->
 
                                     <div>
                                         <label class="block text-sm font-medium text-gray-300 mb-1">Template Agency Baru</label>
@@ -520,43 +554,6 @@
         </div>
     </div>
 
-    <!-- Modal Kelola Akses Produk -->
-    <div id="modal-manage-access" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-dark/80 backdrop-blur-sm" onclick="closeModal('modal-manage-access')"></div>
-        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-card border border-borderMain rounded-2xl shadow-2xl flex flex-col fade-in max-h-[90vh] overflow-hidden">
-            <div class="flex justify-between items-center p-6 border-b border-borderMain bg-[#1A1A1A]">
-                <h3 class="text-lg font-bold text-textMain">Kelola Akses Produk</h3>
-                <button onclick="closeModal('modal-manage-access')" class="text-gray-400 hover:text-gray-200"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-            <div class="p-6 overflow-y-auto">
-                <p class="text-sm text-gray-400 mb-4">Mengelola akses untuk: <strong id="manage-access-agency-name" class="text-primary"></strong></p>
-                
-                <input type="hidden" id="manage-access-agency-id">
-                
-                <!-- Tambah Akses Baru -->
-                <div class="flex space-x-2 mb-6">
-                    <select id="manage-access-product-select" class="flex-1 px-4 py-2 bg-dark border border-borderMain text-textMain rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none">
-                        <option value="" disabled selected>Pilih produk untuk ditambahkan...</option>
-                        <!-- Injected via JS -->
-                    </select>
-                    <button id="btn-add-access" onclick="handleAddAccess()" class="px-4 py-2 bg-primary hover:bg-primaryHover text-white rounded-lg text-sm font-medium transition-colors flex items-center">
-                        <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Tambah
-                    </button>
-                </div>
-
-                <hr class="border-borderMain mb-4">
-                
-                <!-- Daftar Akses Saat Ini -->
-                <h4 class="text-sm font-bold text-gray-300 mb-3">Produk yang Dimiliki:</h4>
-                <div class="border border-borderMain rounded-lg overflow-hidden">
-                    <ul id="manage-access-list" class="divide-y divide-borderMain max-h-48 overflow-y-auto bg-dark">
-                        <!-- Injected via JS -->
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Create Agency Modal -->
     <div id="modal-create-agency" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-dark/80 backdrop-blur-sm" onclick="closeModal('modal-create-agency')"></div>
@@ -566,10 +563,6 @@
                 <button onclick="closeModal('modal-create-agency')" class="text-gray-400 hover:text-gray-200"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <form id="form-create-agency" class="p-4 sm:p-6 overflow-y-auto space-y-4" onsubmit="handleCreateAgency(event)">
-                <div class="bg-primary/10 border border-primary/20 text-primary text-xs p-3 rounded-lg mb-4 flex items-start">
-                    <i data-lucide="info" class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0"></i>
-                    <span>This new agency will inherit a snapshot of <strong>all products</strong> currently assigned to you.</span>
-                </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-1">Agency Name</label>
                     <input type="text" id="agency-name" required class="w-full px-4 py-2 bg-dark border border-borderMain text-textMain rounded-lg focus:ring-2 focus:ring-primary outline-none">
@@ -583,7 +576,6 @@
                     <input type="text" id="agency-phone" required placeholder="e.g. 08123456789" class="w-full px-4 py-2 bg-dark border border-borderMain text-textMain rounded-lg focus:ring-2 focus:ring-primary outline-none">
                 </div>
                 
-                <!-- Pilihan Produk Terpadu -->
                 <div class="mt-4">
                     <label class="block text-sm font-medium text-gray-300 mb-2">Pilih Akses Produk</label>
                     <div id="create-agency-products" class="max-h-40 overflow-y-auto space-y-2 bg-[#222] p-3 rounded-lg border border-borderMain">
@@ -622,11 +614,13 @@
                     <label class="block text-sm font-medium text-gray-300 mb-1">WhatsApp Number</label>
                     <input type="text" id="edit-agency-phone" required class="w-full px-4 py-2 bg-dark border border-borderMain text-textMain rounded-lg focus:ring-2 focus:ring-primary outline-none">
                 </div>
+
                 <div class="mt-4">
                     <label class="block text-sm font-medium text-gray-300 mb-2">Kelola Akses Produk</label>
                     <div id="edit-agency-products" class="max-h-40 overflow-y-auto space-y-2 bg-[#222] p-3 rounded-lg border border-borderMain">
                     </div>
                 </div>
+
                 <div class="pt-4 flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-3 border-t border-borderMain mt-2">
                     <button type="button" onclick="closeModal('modal-edit-agency')" class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-400 hover:text-textMain hover:bg-borderMain rounded-lg transition-colors">Cancel</button>
                     <button type="submit" id="btn-submit-edit-agency" class="w-full sm:w-auto px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg shadow-lg shadow-primary/20 flex justify-center items-center">Simpan Perubahan</button>
